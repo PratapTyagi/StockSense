@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+html,
+body {
+  height: 100%;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--color-app-bg);
+  color: var(--color-primary);
+}
+
+/* Avoid iOS overscroll white background */
+html {
+  background: var(--color-app-bg);
+}
+
+input {
+  outline: none;
+  border-radius: 10px;
+}
+
+/* Light theme (matches provided screens) */
+:root {
+  color-scheme: light;
+}
+
+.primary-heading {
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.secondary-heading {
+  font-size: 12px;
+  font-weight: 100;
+  color: var(--color-secondary);
+}
+
+.button {
+  border: none;
+  cursor: pointer;
+}
+
+@theme light {
+  --color-border: #e5e7eb;
+  --color-logo-bg: #1C1C1E;
+  --color-container-bg: white;
+  --color-app-bg: whitesmoke;
+  --color-primary: #0f172a;
+  --color-secondary: #757575;
+  --color-hover-bg: #e7f9ef;
+  --color-profit: #49cf7b;
+  --color-loss: #ef4444;
+  --color-hover-loss: #fef2f2;
+  --button-primary-bg: #22c55e;
+}
+
+.color-green {
+    color: var(--color-profit);
+}
+
+.color-red {
+    color: var(--color-loss);
+}
+
+@theme dark {
+  /* tbd */
+}

@@ -1,0 +1,32 @@
+.search-bar {
+    width: 100%;
+    padding: 50px 100px 0 100px;
+    
+    .input-container {
+        display: flex;
+        justify-content: space-between;
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        padding: 10px 20px;
+        background-color: var(--color-container-bg);
+    
+        input[class="search-input"] {
+            width: 100%;
+            border-right: 1px solid var(--color-border);
+            margin-right: 10px;
+        }
+        .enter-button {
+            padding: 5px 14px;
+            margin: auto;
+            border-radius: 10px;
+            font-size: small;
+            background-color: var(--color-app-bg);
+            color: var(--color-secondary);
+            cursor: pointer;
+        }
+    }
+    
+    .input-container:focus-within {
+        border: 1px solid var(--color-profit);
+    }
+}

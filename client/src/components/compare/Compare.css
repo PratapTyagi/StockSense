@@ -1,0 +1,51 @@
+.compare-container {
+    min-width: calc(0.7 * (100vw - 15vw - 140px));
+    min-height: 250px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: scroll;
+    max-height: 100vh;
+
+
+    .compare-content {
+        padding: 50px;
+
+        .container-heading {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .normalized-performance {
+            margin-bottom: 2rem;
+            background-color: var(--color-container-bg);
+            padding: 20px;
+            border-radius: 10px;
+            min-width: calc(0.6 * (100vw - 15vw - 140px));
+            /* max-height: 50%; */
+        }
+
+        .metric-comparison {
+            background-color: var(--color-container-bg);
+            border-radius: 10px;
+            min-width: calc(0.6 * (100vw - 15vw - 140px));
+
+            .metric {
+                font-size: 14px;
+                color: var(--color-secondary);
+                padding: 4px 10px;
+                border-radius: 10px;
+                cursor: pointer;
+            }
+            .active {
+                /* background-color: var(--color-app-bg); */
+                color: var(--color-primary);
+                background-color: var(--color-app-bg);
+            }
+        }
+    }
+}
+
+.compare-container::-webkit-scrollbar {
+    display: none;
+}

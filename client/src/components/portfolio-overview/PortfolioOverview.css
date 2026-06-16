@@ -1,0 +1,55 @@
+.portfolio-overview {
+    /* 15vw is width of navbar and 140px is margins between components and we want 70% space only */
+    min-width: calc(0.7 * (100vw - 15vw - 140px));
+    min-height: 250px;
+    background-color: var(--color-container-bg);
+    border-radius: 10px;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    .portfolio-section {
+        display: flex;
+        gap: 1.2rem;
+
+        .portfolio-value-section {
+            margin-right: auto;
+
+            .portfolio-value {
+                
+                .portfolio-value-span {
+                    font-size: xx-large;
+                    font-weight: 100;
+                }
+                .profit-span {
+                    position: relative;
+                    top: 5px;
+                    margin-left: .6em;
+                    font-size: small;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    color: var(--color-profit);
+                    background-color: var(--color-hover-bg);
+                }
+            }
+
+        }
+
+        .portfolio-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+    }
+
+    .portfolio-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid var(--color-border);
+        padding: 1rem 0;
+
+        .profit-loss {
+            margin-right: 15%;
+        }
+    }
+}

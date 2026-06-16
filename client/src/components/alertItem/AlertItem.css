@@ -1,0 +1,25 @@
+.alert-item {
+    border-radius: 10px;
+    .status {
+        padding: 2px 10px;
+        height: fit-content;
+        border-radius: 10px;
+        font-size: 12px;
+
+        &.active {
+            color: var(--color-profit);
+            background-color: var(--color-hover-bg);
+        }
+        &.paused {
+            background-color: var(--color-app-bg);
+        }
+        &.triggered {
+            color: var(--color-loss);
+            background-color: var(--color-hover-loss);
+        }
+    }
+
+    .last-triggered {
+        font-size: 12px;
+    }
+}

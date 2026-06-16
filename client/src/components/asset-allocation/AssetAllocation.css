@@ -1,0 +1,22 @@
+.asset-allocation {
+    max-width: calc(0.3 * (100vw - 15vw - 140px));
+    width: 100%;
+    min-height: 250px;
+    background-color: var(--color-container-bg);
+    border-radius: 10px;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    .header-content {
+        .heading {
+            font-size: 18px;
+            font-weight: 100;
+        }
+    }
+    .allocation-section {
+        display: flex;
+        gap: 1.2rem;
+    }
+}
