@@ -3,16 +3,17 @@ using Domain.Contexts;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Extentions;
-internal static class WebApplicationBuilderExtentions
+namespace Infrastructure.Extensions;
+
+internal static class WebApplicationBuilderExtensions
 {
     public static WebApplicationBuilder AddWebApplicationBuilderConfiguration(this WebApplicationBuilder builder)
     {
         #region Cors configuration
         builder.Services.AddCors(options =>
-        {            
+        {
             options.AddPolicy("AllowAll", policy =>
-            {                
+            {
                 policy.AllowAnyOrigin()
                       .AllowAnyHeader()
                       .AllowAnyMethod();
@@ -28,7 +29,7 @@ internal static class WebApplicationBuilderExtentions
             .AddConsole()
             .AddDebug()
             .SetMinimumLevel(LogLevel.Information);
-     
+
         // Configuring Redis cache
         builder.Services.AddStackExchangeRedisCache(redisOptions =>
         {

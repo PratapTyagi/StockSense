@@ -3,16 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StockDataService.Entities;
 
-[Table("stock_history")]
-public class StockHistoryRecord
+[Table("StockCandles", Schema = "dbo")]
+public class StockCandleRecord
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public long Id { get; set; }
 
     [Required]
-    [MaxLength(50)]
-    public string Symbol { get; set; } = string.Empty;
+    public long StockId { get; set; }
 
     [Required]
     public DateTime Timestamp { get; set; }
@@ -31,5 +30,9 @@ public class StockHistoryRecord
 
     public long Volume { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public DateTime CreatedAt { get; set; }
+
+    [ForeignKey(nameof(StockId))]
+    public virtual StockRecord? Stock { get; set; }
 }

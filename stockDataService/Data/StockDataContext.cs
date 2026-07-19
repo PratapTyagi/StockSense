@@ -6,20 +6,29 @@ namespace StockDataService.Data;
 public class StockDataContext : DbContext
 {
     public StockDataContext(DbContextOptions<StockDataContext> options) : base(options)
-    {
-    }
+    { }
 
-    public DbSet<StockHistoryRecord> StockHistory { get; set; } = null!;
+    public DbSet<StockRecord> Stocks { get; set; } = null!;
+    public DbSet<StockCandleRecord> StockHistory { get; set; } = null!;
+    public DbSet<StockSyncStatusRecord> StockSyncStatus { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<StockHistoryRecord>(entity =>
+        modelBuilder.Entity<StockCandleRecord>(entity =>
         {
-            // Index for efficient querying by symbol + timestamp
-            entity.HasIndex(e => new { e.Symbol, e.Timestamp })
-                  .HasDatabaseName("IX_StockHistory_Symbol_Timestamp");
+            entity.ToTable("StockCandles", "dbo");
+        });
+
+        modelBuilder.Entity<StockRecord>(entity =>
+        {
+            entity.ToTable("Stocks", "dbo");
+        });
+
+        modelBuilder.Entity<StockSyncStatusRecord>(entity =>
+        {
+            entity.ToTable("StockSyncStatus", "dbo");
         });
     }
 }

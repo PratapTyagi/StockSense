@@ -19,4 +19,11 @@ public static class Constants
     public const string ZerodhaInstrumentsClient = "ZerodhaInstrumentsClient";
     public const string ZerodhaHistoricalClient = "ZerodhaHistoricalClient";
     #endregion
+
+
+    #region Status codes
+    public const int Success = 200;
+    public const int BadRequest = 400;
+    public const int InternalServerError = 500;
+    #endregion
 }

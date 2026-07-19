@@ -1,5 +1,7 @@
 using Helpers;
 using Interfaces;
+using StockDataService.Repositories;
+using StockDataService.Services;
 
 namespace Extensions;
 
@@ -7,11 +9,15 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddScopedServices(this IServiceCollection services)
     {
-        // Registers the helper with a scoped lifetime
-        services.AddScoped<IZerodhaHelper, ZerodhaHelper>();
-        services.AddSingleton<IKiteInstrumentLoader, KiteInstrumentLoader>();
+        services.AddScoped<IStockHistorySyncService, StockHistorySyncService>();
+        services.AddScoped<IStockCandlesRepository, StockCandlesRepository>();
+        services.AddScoped<IStockSyncRepository, StockSyncRepository>();
+        services.AddScoped<IStocksRepository, StocksRepository>();
+        services.AddScoped<IStockSyncService, StockSyncService>();
+
         return services;
     }
+
     public static IServiceCollection AddHttpClients(this IServiceCollection services)
     {
         // Client 1: For Instruments/Tokens
