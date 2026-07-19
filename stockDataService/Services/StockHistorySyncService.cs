@@ -84,21 +84,25 @@ public class StockHistorySyncService(
         string stockSymbol,
         DateTime fromDate)
     {
-        var stockSyncStatus = await stockSyncRepo.GetStockSyncStatusBySymbolAsync(stockSymbol)
+        StockSyncStatusRecord stockSyncStatus = await stockSyncRepo.GetStockSyncStatusBySymbolAsync(stockSymbol)
             ?? throw new ArgumentException($"Invalid stock symbol: {stockSymbol}");
         List<StockCandleRecord> stockHistoryInDatabase = await stockCandlesRepo.GetByStockIdAndFromDateAsync(stockSyncStatus.Stock.Id, fromDate)
             ?? throw new ArgumentException($"Invalid stock symbol: {stockSymbol}");
 
-        var remainingCandles = await FetchCandlesFromZerodhaAsync(stockSyncStatus.Stock, stockHistoryInDatabase.FirstOrDefault()?.Timestamp ?? fromDate, DateTime.Today);
-
+        List<StockCandleRecord> remainingCandles = await FetchCandlesFromZerodhaAsync(stockSyncStatus.Stock, stockHistoryInDatabase.FirstOrDefault()?.Timestamp ?? fromDate, DateTime.Today);
+        List<StockCandleRecord> totalStockHistory = stockHistoryInDatabase.Concat(remainingCandles).OrderByDescending(c => c.Timestamp).ToList();
+        stockSyncStatus.LastCandleTimestamp = totalStockHistory.LastOrDefault()?.Timestamp ?? stockSyncStatus.LastCandleTimestamp;
         if (remainingCandles.Count > 0)
         {
             await stockCandlesRepo.InsertManyAsync(remainingCandles);
+
+            await stockSyncRepo.UpsertStockSyncStatusesAsync(new List<StockSyncStatusRecord>
+            {
+                stockSyncStatus
+            });
         }
 
-        stockHistoryInDatabase.AddRange(remainingCandles);
-
-        return stockHistoryInDatabase.OrderByDescending(c => c.Timestamp).ToList();
+        return totalStockHistory;
     }
 
     /// <summary>
