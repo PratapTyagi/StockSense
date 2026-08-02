@@ -17,12 +17,15 @@ public class StockSyncRepository : IStockSyncRepository
     public async Task<Dictionary<string, StockSyncStatusRecord>> GetAllStockSyncStatusAsync()
     {
         return await _context.StockSyncStatus
+            .Include(r => r.Stock)
             .ToDictionaryAsync(r => r.Symbol);
     }
 
     public async Task<StockSyncStatusRecord?> GetStockSyncStatusBySymbolAsync(string symbol)
     {
-        return await _context.StockSyncStatus.FirstOrDefaultAsync(r => r.Symbol == symbol);
+        return await _context.StockSyncStatus
+            .Include(r => r.Stock)
+            .FirstOrDefaultAsync(r => r.Symbol == symbol);
     }
 
     public async Task InsertManyAsync(List<StockSyncStatusRecord> stockSyncStatuses)
@@ -31,22 +34,24 @@ public class StockSyncRepository : IStockSyncRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpsertStockSyncStatusesAsync(List<StockSyncStatusRecord> stockSyncStatuses)
+    public async Task UpsertStockSyncStatusAsync(StockSyncStatusRecord stockSyncStatus)
     {
-        foreach (var status in stockSyncStatuses)
+        var existing = await _context.StockSyncStatus
+        .FirstOrDefaultAsync(r => r.Stock_Id == stockSyncStatus.Stock_Id);
+
+        if (existing is null)
         {
-            if (status.Id == 0)
-            {
-                // New record — attach as Added
-                _context.StockSyncStatus.Add(status);
-            }
-            else if (_context.Entry(status).State == EntityState.Detached)
-            {
-                // Existing record but not tracked — mark as Modified
-                _context.StockSyncStatus.Update(status);
-            }
-            // Else: already tracked, mutations are picked up automatically
+            await _context.StockSyncStatus.AddAsync(stockSyncStatus);
+            await _context.SaveChangesAsync();
+            return;
         }
+
+        // Merge only the mutable fields — never overwrite Id / Stock_Id
+        existing.Symbol = stockSyncStatus.Symbol;
+        existing.LastCandleTimestamp = stockSyncStatus.LastCandleTimestamp;
+        if (stockSyncStatus.LastFundamentalSync.HasValue)
+            existing.LastFundamentalSync = stockSyncStatus.LastFundamentalSync;
+
         await _context.SaveChangesAsync();
     }
 }

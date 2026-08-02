@@ -1,12 +1,13 @@
 using Newtonsoft.Json;
 using Interfaces;
 using StockDataService.Entities;
+using System.Numerics;
 
 namespace Helpers;
 
-public class StockHistorySyncService(
+public class ZerodhaStockHistorySyncService(
     IHttpClientFactory httpClientFactory,
-    ILogger<StockHistorySyncService> logger,
+    ILogger<ZerodhaStockHistorySyncService> logger,
     IStockCandlesRepository stockCandlesRepo,
     IStockSyncRepository stockSyncRepo)
     : IStockHistorySyncService
@@ -20,7 +21,6 @@ public class StockHistorySyncService(
         Dictionary<string, StockSyncStatusRecord> syncStatusBySymbol = await stockSyncRepo.GetAllStockSyncStatusAsync();
         logger.LogInformation("Starting historical data sync for {Count} stocks.", syncStatusBySymbol.Count);
 
-        List<StockSyncStatusRecord> statusesToUpsert = new List<StockSyncStatusRecord>();
         DateTime toDate = DateTime.Today;
 
         foreach (var (symbol, syncStatus) in syncStatusBySymbol)
@@ -56,7 +56,7 @@ public class StockHistorySyncService(
                     syncStatus.LastCandleTimestamp = candles[^1].Timestamp;
                 }
 
-                statusesToUpsert.Add(syncStatus);
+                await stockSyncRepo.UpsertStockSyncStatusAsync(syncStatus);
 
                 logger.LogInformation(
                     "{Symbol} synced successfully. {Count} candles imported.",
@@ -67,11 +67,6 @@ public class StockHistorySyncService(
             {
                 logger.LogError(ex, "Failed to fetch latest historical data for {Symbol}", symbol);
             }
-        }
-
-        if (statusesToUpsert.Count > 0)
-        {
-            await stockSyncRepo.UpsertStockSyncStatusesAsync(statusesToUpsert);
         }
 
         logger.LogInformation("Historical data sync completed.");
@@ -95,11 +90,7 @@ public class StockHistorySyncService(
         if (remainingCandles.Count > 0)
         {
             await stockCandlesRepo.InsertManyAsync(remainingCandles);
-
-            await stockSyncRepo.UpsertStockSyncStatusesAsync(new List<StockSyncStatusRecord>
-            {
-                stockSyncStatus
-            });
+            await stockSyncRepo.UpsertStockSyncStatusAsync(stockSyncStatus);
         }
 
         return totalStockHistory;
@@ -117,7 +108,7 @@ public class StockHistorySyncService(
         var client = httpClientFactory.CreateClient(Constants.ZerodhaHistoricalClient);
 
         client.DefaultRequestHeaders.Clear();
-        client.DefaultRequestHeaders.Add("Authorization", "YOUR_ENCTOKEN");
+        client.DefaultRequestHeaders.Add("Authorization", "enctoken 2dQIOBZTRejPKeMO2sRcI4p14Up9w/sehJ7vIjwm0T9c9DlGltCOU+W5xy+ibr5rIEVVvEosVRJgiv9BWF7LjPybEg0LHim+y0NNItElAK/0q7WyAKo2rQ==");
 
         var response = await client.GetAsync(
             $"{Constants.HistoricalEndpoint}/{instrumentToken}/day?user_id=TL0092&oi=1&from={fromDate:yyyy-MM-dd}&to={toDate:yyyy-MM-dd}");

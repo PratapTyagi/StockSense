@@ -11,11 +11,9 @@ builder.Services.AddControllers();
 // Register SQL Server DbContext
 string connectionString = builder.Configuration.GetConnectionString("StockDataDb")
     ?? throw new InvalidOperationException("Connection string 'StockDataDb' not found.");
-builder.Services.AddDbContext<StockDataContext>(options =>
-    options.UseSqlServer(connectionString)
-);
 
 // Register custom scoped services and HTTP clients
+builder.Services.AddDatabaseConnection(connectionString);
 builder.Services.AddScopedServices();
 builder.Services.AddHttpClients();
 

@@ -9,11 +9,11 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddScopedServices(this IServiceCollection services)
     {
-        services.AddScoped<IStockHistorySyncService, StockHistorySyncService>();
+        services.AddScoped<IStockHistorySyncService, ZerodhaStockHistorySyncService>();
         services.AddScoped<IStockCandlesRepository, StockCandlesRepository>();
         services.AddScoped<IStockSyncRepository, StockSyncRepository>();
         services.AddScoped<IStocksRepository, StocksRepository>();
-        services.AddScoped<IStockSyncService, StockSyncService>();
+        services.AddScoped<IStockSyncService, ZerodhaStockSyncService>();
 
         return services;
     }

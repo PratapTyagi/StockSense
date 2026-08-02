@@ -24,7 +24,7 @@ public class StockRecord
     public string Exchange { get; set; } = string.Empty;
 
     [Required]
-    [Column("COMPANY_NAME", TypeName = "nvarchar(255)")]
+    [Column(TypeName = "nvarchar(255)")]
     public string CompanyName { get; set; } = string.Empty;
 
     [Column(TypeName = "bit")]

@@ -10,24 +10,23 @@ namespace Controllers;
 /// <param name="logger"></param>
 [Route("api/[controller]")]
 [ApiController]
-public class StockDataController(ILogger<StockDataController> logger, IZerodhaHelper zerodhaHelper, IKiteStockSyncService kiteStockSyncService) : ControllerBase
+public class StockHistoryController(ILogger<StockHistoryController> logger, IStockHistorySyncService stockHistorySyncService, IStockSyncService stockSyncService) : ControllerBase
 {
-    private ILogger<StockDataController> _logger = logger;
-    private IZerodhaHelper _zerodhaHelper = zerodhaHelper;
-    private IKiteStockSyncService _kiteStockSyncService = kiteStockSyncService;
+    private ILogger<StockHistoryController> _logger = logger;
+    private IStockHistorySyncService _stockHistorySyncService = stockHistorySyncService;
 
     /// <summary>
     /// Fetches stock historical data for a given stock symbol.
     /// </summary>
-    /// <param name="stockSymbol">The stock symbol to fetch historical data for.</param>
+    /// 
     /// <returns>Stock historical data for the specified symbol.</returns>
-    [HttpGet]
-    public async Task<IActionResult> GetStockData([FromQuery] string stockSymbol)
+    [HttpGet("{stockSymbol}")]
+    public async Task<IActionResult> GetStockData(string stockSymbol)
     {
         _logger.LogInformation("Received request for stock historical data with symbol: {stockSymbol}", stockSymbol);
         try
         {
-            var data = await _zerodhaHelper.GetStockHistoricalData(stockSymbol, DateTime.Today.AddDays(-5 * 365)); // Fetch data for the last 5 years
+            var data = await _stockHistorySyncService.GetStockHistoricalData(stockSymbol, DateTime.Today.AddDays(-5 * 365)); // Fetch data for the last 5 years
             return Ok(data);
         }
         catch (System.Exception ex)
@@ -42,13 +41,13 @@ public class StockDataController(ILogger<StockDataController> logger, IZerodhaHe
     /// This endpoint is intended to be called at application startup or when a manual sync is required. It will log the number of NSE equity instruments parsed and any errors encountered during the sync process
     /// </summary>
     /// <returns></returns>
-    [HttpGet("/sync-all-stocks")]
+    [HttpGet("sync-all")]
     public async Task<IActionResult> SyncDataForAllStocks()
     {
         _logger.LogInformation("Syncing data for all stocks.");
         try
         {
-            await _kiteStockSyncService.StockSyncAsync(HttpContext.RequestAborted);
+            await _stockHistorySyncService.SyncAllStocksHistoricalDataAsync();
             return Ok("Data sync done for all the stocks.");
         }
         catch (System.Exception ex)
@@ -57,20 +56,4 @@ public class StockDataController(ILogger<StockDataController> logger, IZerodhaHe
             return StatusCode(Constants.InternalServerError, "An error occurred while syncing stock data.");
         }
     }
-
-    // [HttpGet("/sync-historical-data")]
-    // public async Task<IActionResult> SyncHistoricalDataForAllStocks()
-    // {
-    //     _logger.LogInformation("Syncing historical data for all stocks.");
-    //     try
-    //     {
-    //         await _zerodhaHelper.SyncHistoricalDataForAllStocks(HttpContext.RequestAborted);
-    //         return Ok("Historical data sync done for all the stocks.");
-    //     }
-    //     catch (System.Exception ex)
-    //     {
-    //         _logger.LogError("Error syncing historical data: {Message}", ex.Message);
-    //         return StatusCode(Constants.InternalServerError, "An error occurred while syncing historical stock data.");
-    //     }
-    // }
 }
