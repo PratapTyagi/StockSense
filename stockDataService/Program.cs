@@ -14,6 +14,7 @@ string connectionString = builder.Configuration.GetConnectionString("StockDataDb
 
 // Register custom scoped services and HTTP clients
 builder.Services.AddDatabaseConnection(connectionString);
+builder.Services.AddSecureTokenStore(builder.Configuration);
 builder.Services.AddScopedServices();
 builder.Services.AddHttpClients();
 

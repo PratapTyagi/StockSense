@@ -9,7 +9,8 @@ public class ZerodhaStockHistorySyncService(
     IHttpClientFactory httpClientFactory,
     ILogger<ZerodhaStockHistorySyncService> logger,
     IStockCandlesRepository stockCandlesRepo,
-    IStockSyncRepository stockSyncRepo)
+    IStockSyncRepository stockSyncRepo,
+    IEncTokenProvider encTokenProvider)
     : IStockHistorySyncService
 {
     /// <summary>
@@ -107,11 +108,30 @@ public class ZerodhaStockHistorySyncService(
         var instrumentToken = stock.InstrumentToken;
         var client = httpClientFactory.CreateClient(Constants.ZerodhaHistoricalClient);
 
-        client.DefaultRequestHeaders.Clear();
-        client.DefaultRequestHeaders.Add("Authorization", "enctoken 2dQIOBZTRejPKeMO2sRcI4p14Up9w/sehJ7vIjwm0T9c9DlGltCOU+W5xy+ibr5rIEVVvEosVRJgiv9BWF7LjPybEg0LHim+y0NNItElAK/0q7WyAKo2rQ==");
+        string? encToken = await encTokenProvider.GetAsync();
+        if (string.IsNullOrEmpty(encToken))
+        {
+            throw new InvalidOperationException(
+                "You are not authorized to perform this operation.");
+        }
 
-        var response = await client.GetAsync(
+        // Build request explicitly so the shared HttpClient (from IHttpClientFactory) is not mutated
+        // by concurrent callers. DefaultRequestHeaders on a named client are NOT thread-safe.
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
             $"{Constants.HistoricalEndpoint}/{instrumentToken}/day?user_id=TL0092&oi=1&from={fromDate:yyyy-MM-dd}&to={toDate:yyyy-MM-dd}");
+        request.Headers.TryAddWithoutValidation("Authorization", $"enctoken {encToken}");
+
+        var response = await client.SendAsync(request);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+            response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            // Token likely expired mid-run. Invalidate so the next call forces a refresh.
+            await encTokenProvider.InvalidateAsync();
+            throw new UnauthorizedAccessException(
+                "Zerodha rejected the enctoken. It has been invalidated; supply a fresh one and retry.");
+        }
 
         response.EnsureSuccessStatusCode();
 
