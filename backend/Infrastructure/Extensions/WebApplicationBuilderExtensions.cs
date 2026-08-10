@@ -22,7 +22,7 @@ internal static class WebApplicationBuilderExtensions
         #endregion
 
         #region Application dependencies configuration
-        builder.Services.AddApplicationDependencies(builder.Configuration);
+        builder.Services.AddApplicationDependencies();
 
         // Add services to the container.
         builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"))
@@ -35,10 +35,11 @@ internal static class WebApplicationBuilderExtensions
         {
             redisOptions.Configuration = builder.Configuration.GetConnectionString("Redis");
         });
-        // Configuring MySQL connection
-        string connectionString = builder.Configuration.GetConnectionString("MysqlDb") ?? throw new InvalidOperationException("Connection string 'MysqlDb' not found.");
+        // Configuring SQL Server connection
+        // deployment the tables live at <ConnectedDatabase>.Stocks etc.
+        string connectionString = builder.Configuration.GetConnectionString("StockDataDb") ?? throw new InvalidOperationException("Connection string 'StockDataDb' not found.");
         builder.Services.AddDbContext<StockSenseAiContext>(options =>
-            options.UseMySQL(connectionString)
+            options.UseSqlServer(connectionString)
         );
 
         builder.Services.AddControllers();

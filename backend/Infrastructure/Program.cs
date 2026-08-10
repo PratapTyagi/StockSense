@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Builder;
-using Infrastructure.Extentions;
+using Infrastructure.Extensions;
 
 try
 {

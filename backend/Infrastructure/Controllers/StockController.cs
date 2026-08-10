@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Application.Interfaces;
+using Application.Models.OpportunityScanner;
 using Application.Services;
 
 namespace Infrastructure.Controllers;
@@ -10,11 +11,12 @@ namespace Infrastructure.Controllers;
 /// <param name="logger"></param>
 [Route("api/[controller]")]
 [ApiController]
-public class StockController(ILogger<StockController> logger, IStockService stockService, IStockSenseService stockSenseService) : ControllerBase
+public class StockController(ILogger<StockController> logger, IStockService stockService, IStockSenseService stockSenseService, IOpportunityScannerService scanner) : ControllerBase
 {
     private readonly ILogger<StockController> _logger = logger;
     private readonly IStockService _stockService = stockService;
     private readonly IStockSenseService _stockSenseService = stockSenseService;
+    private readonly IOpportunityScannerService _scanner = scanner;
 
     /// <summary>
     /// Fetches stock details for a given stock name.
@@ -30,7 +32,7 @@ public class StockController(ILogger<StockController> logger, IStockService stoc
             var stockData = await _stockService.GetStockDetailsAsync(name);
             if (stockData == null)
             {
-                return NotFound($"No stock data found for name: {name}");   
+                return NotFound($"No stock data found for name: {name}");
             }
             return Ok(stockData);
         }
@@ -97,6 +99,38 @@ public class StockController(ILogger<StockController> logger, IStockService stoc
         catch (Exception)
         {
             return StatusCode(500, "An error occurred while fetching trending stocks.");
+        }
+    }
+
+    /// <summary>
+    /// Returns the top-N ranked stocks by OpportunityScore.
+    /// </summary>
+    /// <param name="top">Number of results (default 20, max 200).</param>
+    /// <param name="minScore">Optional minimum OpportunityScore (0-100).</param>
+    /// <param name="exchange">Optional exchange filter (e.g. "NSE").</param>
+    [HttpGet("opportunities")]
+    public async Task<IActionResult> Scan(
+        [FromQuery] int top = 20,
+        [FromQuery] double? minScore = null,
+        [FromQuery] string? exchange = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new OpportunityScannerRequest
+            {
+                Top = Math.Clamp(top, 1, 200),
+                MinScore = minScore,
+                Exchange = exchange,
+            };
+
+            var results = await _scanner.ScanAsync(request, cancellationToken);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Opportunity scan failed");
+            return StatusCode(500, "An error occurred while running the opportunity scan.");
         }
     }
 }

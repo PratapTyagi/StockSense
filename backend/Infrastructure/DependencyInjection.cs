@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Application.Services;
+using Application.Services.OpportunityScanner;
 using Infrastructure.Cache;
 
 namespace Infrastructure;
@@ -12,5 +13,6 @@ public static class DependencyInjection
         services.AddKeyedSingleton<ICacheService, RedisCacheService>("redis");
         services.AddScoped<IWatchListService, WatchListService>();
         services.AddScoped<IStockSenseService, StockSenseService>();
+        services.AddScoped<IOpportunityScannerService, OpportunityScannerService>();
     }
 }
