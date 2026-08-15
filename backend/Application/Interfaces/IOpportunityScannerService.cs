@@ -4,7 +4,7 @@ namespace Application.Interfaces;
 
 /// <summary>
 /// Ranks the active stock universe by an aggregate "OpportunityScore"
-/// derived from Momentum (40%), Trend (30%), Volume (15%), and Risk (15%).
+/// derived from Momentum (35%), Trend (30%), Volume (10%), and Risk (25%).
 /// All inputs come from the local Stocks/StockCandles tables.
 /// </summary>
 public interface IOpportunityScannerService

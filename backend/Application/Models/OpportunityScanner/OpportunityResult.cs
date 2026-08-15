@@ -17,6 +17,7 @@ public class ScoreBreakdown
 /// </summary>
 public class OpportunityResult
 {
+    public int Rank { get; set; }
     public long StockId { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public string CompanyName { get; set; } = string.Empty;
@@ -28,6 +29,13 @@ public class OpportunityResult
     /// <summary>Aggregate 0-100 score. Higher = more attractive opportunity.</summary>
     public double OpportunityScore { get; set; }
 
+    /// <summary>Penalty applied for overextension (0-15). Subtracted from base score.</summary>
+    public double OverextensionPenalty { get; set; }
+
     public ScoreBreakdown Scores { get; set; } = new();
+
+    /// <summary>Explanatory signals describing why this stock scored as it did.</summary>
+    public List<string> Signals { get; set; } = new();
+
     public StockMetrics Metrics { get; set; } = new();
 }

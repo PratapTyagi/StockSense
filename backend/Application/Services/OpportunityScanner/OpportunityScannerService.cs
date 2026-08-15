@@ -10,19 +10,27 @@ namespace Application.Services.OpportunityScanner;
 /// <summary>
 /// End-to-end Opportunity Scanner pipeline:
 ///
-///     Stocks → Eligibility filter → Load candles → Compute metrics
-///            → Score categories → Aggregate → Rank → Top N
+///     Stocks → Symbol eligibility → Load candles → Data eligibility
+///            → Compute metrics → Score → Rank → Top N
 ///
-/// Data is sourced exclusively from the local <c>Stocks</c> and <c>StockCandles</c>
-/// tables (populated by the stockDataService), so this service does not depend on
-/// any external market-data provider.
+/// Data is sourced exclusively from the local Stocks and StockCandles tables.
 /// </summary>
 public class OpportunityScannerService : IOpportunityScannerService
 {
-    // How many trading days of history we pull per stock. The scorer only needs
-    // ~200 for SMA200, but pulling a small buffer keeps the query stable even if
-    // a sync run misses a day or two.
     private const int CandleLookbackDays = 220;
+
+    /// <summary>
+    /// Minimum average daily traded value (₹) for a stock to be considered liquid enough.
+    /// Configurable — set conservatively low so we don't arbitrarily exclude stocks
+    /// without empirical evidence. Can be tuned once real data is observed.
+    /// </summary>
+    private const double MinAverageDailyTradedValue = 500_000; // ₹5 lakh
+
+    /// <summary>
+    /// Special trading series suffixes that should be excluded from opportunity ranking.
+    /// These represent restricted/illiquid trading categories on Indian exchanges.
+    /// </summary>
+    private static readonly string[] ExcludedSuffixes = { "-BE", "-SM", "-ST" };
 
     private readonly StockSenseAiContext _db;
     private readonly ILogger<OpportunityScannerService> _logger;
@@ -52,25 +60,33 @@ public class OpportunityScannerService : IOpportunityScannerService
             stocksQuery = stocksQuery.Where(s => s.Exchange == exchange);
         }
 
-        var stocks = await stocksQuery.ToListAsync(cancellationToken);
-        if (stocks.Count == 0)
+        var allStocks = await stocksQuery.ToListAsync(cancellationToken);
+        if (allStocks.Count == 0)
         {
             _logger.LogInformation("Opportunity scan: no active stocks in universe.");
             return Array.Empty<OpportunityResult>();
         }
 
-        _logger.LogInformation(
-            "Opportunity scan starting: universe={UniverseSize} stocks, top={Top}",
-            stocks.Count, top);
+        // 2. Symbol-level eligibility filter (before loading candles to save I/O).
+        var eligibleStocks = allStocks
+            .Where(s => IsSymbolEligible(s.Symbol))
+            .ToList();
 
-        // 2. Bulk-load the tail of history for every stock in a single query.
-        //    We rely on the (StockId, Timestamp) index for efficient retrieval.
-        var stockIds = stocks.Select(s => s.Id).ToArray();
-        var cutoff = DateTime.UtcNow.AddDays(-(CandleLookbackDays * 2)); // ~2x calendar buffer for weekends/holidays
+        _logger.LogInformation(
+            "Opportunity scan starting: universe={UniverseSize}, after symbol filter={Eligible}, top={Top}",
+            allStocks.Count, eligibleStocks.Count, top);
+
+        if (eligibleStocks.Count == 0)
+            return Array.Empty<OpportunityResult>();
+
+        // 3. Bulk-load candle history for eligible stocks only.
+        //    Filter by stockIds to avoid loading the entire table.
+        var stockIds = eligibleStocks.Select(s => s.Id).ToArray();
+        var cutoff = DateTime.UtcNow.AddDays(-(CandleLookbackDays * 2)); // calendar buffer
 
         var candlesByStock = await _db.StockCandles
             .AsNoTracking()
-            .Where(c => c.Timestamp >= cutoff)
+            .Where(c => stockIds.Contains(c.StockId) && c.Timestamp >= cutoff)
             .OrderBy(c => c.StockId).ThenBy(c => c.Timestamp)
             .ToListAsync(cancellationToken);
 
@@ -78,12 +94,11 @@ public class OpportunityScannerService : IOpportunityScannerService
             .GroupBy(c => c.StockId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<StockCandle>)g.ToList());
 
-        // 3. Metric + score pipeline. This part is CPU-bound and pure, so we
-        //    keep it sequential — it's plenty fast for a few thousand stocks.
-        var results = new List<OpportunityResult>(stocks.Count);
-        int skippedNoData = 0, skippedInsufficient = 0, skippedInvalidClose = 0;
+        // 4. Metric + score pipeline.
+        var results = new List<OpportunityResult>(eligibleStocks.Count);
+        int skippedNoData = 0, skippedInsufficient = 0, skippedInvalidClose = 0, skippedIlliquid = 0;
 
-        foreach (var stock in stocks)
+        foreach (var stock in eligibleStocks)
         {
             if (!grouped.TryGetValue(stock.Id, out var candles) || candles.Count == 0)
             {
@@ -91,60 +106,94 @@ public class OpportunityScannerService : IOpportunityScannerService
                 continue;
             }
 
-            if (!IsEligible(candles, out var reason))
+            var eligibility = CheckDataEligibility(candles);
+            if (eligibility != DataEligibility.Eligible)
             {
-                if (reason == IneligibilityReason.InsufficientHistory) skippedInsufficient++;
-                else if (reason == IneligibilityReason.InvalidLatestClose) skippedInvalidClose++;
+                switch (eligibility)
+                {
+                    case DataEligibility.InsufficientHistory: skippedInsufficient++; break;
+                    case DataEligibility.InvalidLatestClose: skippedInvalidClose++; break;
+                }
                 continue;
             }
 
             var metrics = MetricCalculator.Compute(stock, candles);
+
+            // Liquidity filter (post-metric, since we need AverageDailyTradedValue)
+            if (metrics.AverageDailyTradedValue is not null && metrics.AverageDailyTradedValue.Value < MinAverageDailyTradedValue)
+            {
+                skippedIlliquid++;
+                continue;
+            }
+
             var scored = OpportunityScorer.Score(metrics);
+
+            // Low liquidity warning (above threshold but still relatively low)
+            if (metrics.AverageDailyTradedValue is not null && metrics.AverageDailyTradedValue.Value < MinAverageDailyTradedValue * 5)
+            {
+                scored.Signals.Add("Low liquidity");
+            }
 
             if (request.MinScore is { } minScore && scored.OpportunityScore < minScore) continue;
             results.Add(scored);
         }
 
         _logger.LogInformation(
-            "Opportunity scan done: scored={Scored}, skipped_no_data={NoData}, skipped_insufficient={Insufficient}, skipped_invalid_close={Invalid}",
-            results.Count, skippedNoData, skippedInsufficient, skippedInvalidClose);
+            "Opportunity scan done: scored={Scored}, skipped_no_data={NoData}, skipped_insufficient={Insufficient}, skipped_invalid_close={Invalid}, skipped_illiquid={Illiquid}",
+            results.Count, skippedNoData, skippedInsufficient, skippedInvalidClose, skippedIlliquid);
 
-        // 4. Rank descending and take top-N.
-        return results
+        // 5. Rank descending and take top-N.
+        var ranked = results
             .OrderByDescending(r => r.OpportunityScore)
             .ThenByDescending(r => r.Scores.MomentumScore)
+            .ThenBy(r => r.Symbol) // deterministic tie-breaking
             .Take(top)
             .ToList();
+
+        // Assign rank numbers
+        for (int i = 0; i < ranked.Count; i++)
+            ranked[i].Rank = i + 1;
+
+        return ranked;
     }
 
-    // --- Eligibility ---------------------------------------------------------
-
-    private enum IneligibilityReason { None, InsufficientHistory, InvalidLatestClose, InvalidVolume }
+    // =========================================================================
+    // ELIGIBILITY
+    // =========================================================================
 
     /// <summary>
-    /// Basic sanity filter — mirrors the spec's "Don't rank garbage data" rule.
+    /// Symbol-level filter: excludes special trading series.
     /// </summary>
-    private static bool IsEligible(IReadOnlyList<StockCandle> candles, out IneligibilityReason reason)
+    internal static bool IsSymbolEligible(string symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return false;
+
+        foreach (var suffix in ExcludedSuffixes)
+        {
+            if (symbol.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        return true;
+    }
+
+    private enum DataEligibility { Eligible, InsufficientHistory, InvalidLatestClose, InvalidVolume }
+
+    /// <summary>
+    /// Data-level eligibility: enough history, valid close, valid volume.
+    /// </summary>
+    private static DataEligibility CheckDataEligibility(IReadOnlyList<StockCandle> candles)
     {
         if (candles.Count < MetricCalculator.MinCandlesRequired)
-        {
-            reason = IneligibilityReason.InsufficientHistory;
-            return false;
-        }
+            return DataEligibility.InsufficientHistory;
 
         var last = candles[^1];
         if (last.Close <= 0)
-        {
-            reason = IneligibilityReason.InvalidLatestClose;
-            return false;
-        }
-        if (last.Volume < 0)
-        {
-            reason = IneligibilityReason.InvalidVolume;
-            return false;
-        }
+            return DataEligibility.InvalidLatestClose;
 
-        reason = IneligibilityReason.None;
-        return true;
+        if (last.Volume < 0)
+            return DataEligibility.InvalidVolume;
+
+        return DataEligibility.Eligible;
     }
 }
