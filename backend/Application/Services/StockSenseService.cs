@@ -5,9 +5,11 @@ using Application.Interfaces;
 using Application.Models.StockSenseService;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Mysqlx;
 
 namespace Application.Services;
-public class StockSenseService([FromKeyedServices("redis")] ICacheService cacheService, IStockService stockService, ILogger<StockSenseService> logger): IStockSenseService
+
+public class StockSenseService([FromKeyedServices("redis")] ICacheService cacheService, IStockService stockService, ILogger<StockSenseService> logger) : IStockSenseService
 {
     private readonly ICacheService _cacheService = cacheService;
     private readonly IStockService _stockService = stockService;
@@ -30,14 +32,15 @@ public class StockSenseService([FromKeyedServices("redis")] ICacheService cacheS
                     tickerToCacheMap[tickers[i]] = cachedValues[i];
             }
 
-            if(tickerToCacheMap.Count == tickers.Length)
+            if (tickerToCacheMap.Count == tickers.Length)
             {
-                return tickerToCacheMap.Select(kvp => new CompareStockResponse{
+                return tickerToCacheMap.Select(kvp => new CompareStockResponse
+                {
                     Ticker = kvp.Key,
                     Details = JsonSerializer.Deserialize<StockDetailsResponse>(kvp.Value)
                 });
             }
-            
+
             var tasks = new List<Task<IStockDetailsResponse>>();
             foreach (var ticker in tickers)
             {
@@ -56,7 +59,8 @@ public class StockSenseService([FromKeyedServices("redis")] ICacheService cacheS
                 tickerToCacheMap[ticker] = JsonSerializer.Serialize(stockDetails);
             }
 
-            return tickerToCacheMap.Select(kvp => new CompareStockResponse{
+            return tickerToCacheMap.Select(kvp => new CompareStockResponse
+            {
                 Ticker = kvp.Key,
                 Details = JsonSerializer.Deserialize<StockDetailsResponse>(kvp.Value)
             });
@@ -66,5 +70,17 @@ public class StockSenseService([FromKeyedServices("redis")] ICacheService cacheS
             _logger.LogError("An error occurred while comparing stocks for tickers: {tickers}", string.Join(", ", tickers));
             throw;
         }
+    }
+
+    /// <summary>
+    /// Get AI Response
+    /// </summary>
+    /// <param name="prompt"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public Task<string> GetAIResponseAsync(string prompt)
+    {
+        _logger.LogInformation(prompt);
+        return Task.FromResult(string.Empty);
     }
 }

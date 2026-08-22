@@ -3,13 +3,12 @@ using Application.Models.OpportunityScanner;
 namespace Application.Interfaces;
 
 /// <summary>
-/// Ranks the active stock universe by an aggregate "OpportunityScore"
-/// derived from Momentum (35%), Trend (30%), Volume (10%), and Risk (25%).
-/// All inputs come from the local Stocks/StockCandles tables.
+/// Explains why a stock received its opportunity score by building a prompt
+/// from the scored data and sending it to the AI service for interpretation.
 /// </summary>
 public interface IExplainOpportunitiesService
 {
-    Task<IReadOnlyList<OpportunityResult>> ExplainOpportunitiesAsync(
+    Task<ExplainOpportunityResponse> ExplainOpportunitiesAsync(
         string stockName,
         CancellationToken cancellationToken = default);
 }

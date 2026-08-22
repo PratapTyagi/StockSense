@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Application.Interfaces;
 using Application.Models.OpportunityScanner;
 using Microsoft.AspNetCore.Mvc;
@@ -47,24 +45,22 @@ public class OpportunitiesController(ILogger<OpportunitiesController> logger, IO
     }
 
     /// <summary>
-    /// Explain Oportunity
+    /// Explains why a stock received its opportunity score using AI interpretation.
+    /// Returns a structured response with summary, strengths, risks, and overall interpretation.
     /// </summary>
-    /// <param name="stockName">Name of stock</param>
-    /// 
+    /// <param name="stockName">Stock symbol (e.g. "RELIANCE", "3IINFOLTD")</param>
     [HttpGet("{stockName}/explanation")]
     public async Task<IActionResult> ExplainOpportunities(string stockName, CancellationToken cancellationToken = default)
     {
         try
         {
-
-            var response = await _explainOpportunitiesService.ExplainOpportunitiesAsync(stockName);
-
-            return Ok(true);
+            var explanation = await _explainOpportunitiesService.ExplainOpportunitiesAsync(stockName, cancellationToken);
+            return Ok(explanation);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Opportunity scan failed");
-            return StatusCode(500, "An error occurred while running the opportunity scan.");
+            _logger.LogError(ex, "Explain opportunity failed for {StockName}", stockName);
+            return StatusCode(500, "An error occurred while explaining the opportunity.");
         }
     }
 }
