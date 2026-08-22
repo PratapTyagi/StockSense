@@ -108,13 +108,13 @@ public class ZerodhaStockHistorySyncService(
         List<StockCandleRecord> stockHistoryInDatabase = await stockCandlesRepo.GetByStockIdAndFromDateAsync(stockSyncStatus.Stock.Id, fromDate)
             ?? throw new ArgumentException($"Invalid stock symbol: {stockSymbol}");
 
-        List<StockCandleRecord>? remainingCandles = await FetchCandlesFromZerodhaAsync(stockSyncStatus.Stock, stockHistoryInDatabase.FirstOrDefault()?.Timestamp ?? fromDate, DateTime.Today);
+        List<StockCandleRecord>? remainingCandles = await FetchCandlesFromZerodhaAsync(stockSyncStatus.Stock, stockHistoryInDatabase.FirstOrDefault()?.Timestamp.AddDays(1) ?? fromDate, DateTime.Today);
         if (remainingCandles == null)
         {
             return new List<StockCandleRecord>();
         }
         List<StockCandleRecord> totalStockHistory = stockHistoryInDatabase.Concat(remainingCandles).OrderByDescending(c => c.Timestamp).ToList();
-        stockSyncStatus.LastCandleTimestamp = totalStockHistory.LastOrDefault()?.Timestamp ?? stockSyncStatus.LastCandleTimestamp;
+        stockSyncStatus.LastCandleTimestamp = totalStockHistory.FirstOrDefault()?.Timestamp ?? stockSyncStatus.LastCandleTimestamp;
         if (remainingCandles.Count > 0)
         {
             await stockCandlesRepo.InsertManyAsync(remainingCandles);
