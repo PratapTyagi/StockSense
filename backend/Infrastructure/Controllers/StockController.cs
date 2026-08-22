@@ -101,36 +101,4 @@ public class StockController(ILogger<StockController> logger, IStockService stoc
             return StatusCode(500, "An error occurred while fetching trending stocks.");
         }
     }
-
-    /// <summary>
-    /// Returns the top-N ranked stocks by OpportunityScore.
-    /// </summary>
-    /// <param name="top">Number of results (default 20, max 200).</param>
-    /// <param name="minScore">Optional minimum OpportunityScore (0-100).</param>
-    /// <param name="exchange">Optional exchange filter (e.g. "NSE").</param>
-    [HttpGet("opportunities")]
-    public async Task<IActionResult> Scan(
-        [FromQuery] int top = 20,
-        [FromQuery] double? minScore = null,
-        [FromQuery] string? exchange = null,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var request = new OpportunityScannerRequest
-            {
-                Top = Math.Clamp(top, 1, 200),
-                MinScore = minScore,
-                Exchange = exchange,
-            };
-
-            var results = await _scanner.ScanAsync(request, cancellationToken);
-            return Ok(results);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Opportunity scan failed");
-            return StatusCode(500, "An error occurred while running the opportunity scan.");
-        }
-    }
 }

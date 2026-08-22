@@ -7,9 +7,9 @@ namespace Application.Interfaces;
 /// derived from Momentum (35%), Trend (30%), Volume (10%), and Risk (25%).
 /// All inputs come from the local Stocks/StockCandles tables.
 /// </summary>
-public interface IOpportunityScannerService
+public interface IExplainOpportunitiesService
 {
-    Task<IReadOnlyList<OpportunityResult>> GetOpportunitiesAsync(
-        OpportunityScannerRequest request,
+    Task<IReadOnlyList<OpportunityResult>> ExplainOpportunitiesAsync(
+        string stockName,
         CancellationToken cancellationToken = default);
 }

@@ -1,8 +1,10 @@
+using System.Text.Json;
 using Application.Interfaces;
 using Application.Models.OpportunityScanner;
 using Domain.Contexts;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services.OpportunityScanner;
@@ -14,17 +16,21 @@ namespace Application.Services.OpportunityScanner;
 ///            → Compute metrics → Score → Rank → Top N
 ///
 /// Data is sourced exclusively from the local Stocks and StockCandles tables.
+/// Results are cached in Redis for 1 day so that ExplainOpportunitiesAsync
+/// can retrieve pre-computed data for individual stocks.
 /// </summary>
 public class OpportunityScannerService : IOpportunityScannerService
 {
     private const int CandleLookbackDays = 220;
+    private const string CacheKeyPrefix = "opportunity:";
+    private static readonly TimeSpan CacheExpiration = TimeSpan.FromDays(1);
 
     /// <summary>
     /// Minimum average daily traded value (₹) for a stock to be considered liquid enough.
     /// Configurable — set conservatively low so we don't arbitrarily exclude stocks
     /// without empirical evidence. Can be tuned once real data is observed.
     /// </summary>
-    private const double MinAverageDailyTradedValue = 500_000; // ₹5 lakh
+    private const double MinAverageDailyTradedValue = 500000; // ₹5 lakh
 
     /// <summary>
     /// Special trading series suffixes that should be excluded from opportunity ranking.
@@ -34,16 +40,19 @@ public class OpportunityScannerService : IOpportunityScannerService
 
     private readonly StockSenseAiContext _db;
     private readonly ILogger<OpportunityScannerService> _logger;
+    private readonly ICacheService _cacheService;
 
     public OpportunityScannerService(
         StockSenseAiContext db,
-        ILogger<OpportunityScannerService> logger)
+        ILogger<OpportunityScannerService> logger,
+        [FromKeyedServices("redis")] ICacheService cacheService)
     {
         _db = db;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
-    public async Task<IReadOnlyList<OpportunityResult>> ScanAsync(
+    public async Task<IReadOnlyList<OpportunityResult>> GetOpportunitiesAsync(
         OpportunityScannerRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -136,6 +145,10 @@ public class OpportunityScannerService : IOpportunityScannerService
 
             if (request.MinScore is { } minScore && scored.OpportunityScore < minScore) continue;
             results.Add(scored);
+
+            // Cache each opportunity result in Redis with 1-day expiration
+            var cacheKey = $"{CacheKeyPrefix}{stock.Symbol.ToLowerInvariant()}";
+            await _cacheService.SetCachedDataAsync(cacheKey, scored, CacheExpiration);
         }
 
         _logger.LogInformation(
