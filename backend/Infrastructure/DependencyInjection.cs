@@ -14,6 +14,6 @@ public static class DependencyInjection
         services.AddScoped<IWatchListService, WatchListService>();
         services.AddScoped<IStockSenseService, StockSenseService>();
         services.AddScoped<IOpportunityScannerService, OpportunityScannerService>();
-        services.AddScoped<IExplainOpportunitiesService, ExplainOpportunitiesService>();
+        services.AddScoped<IOpportunityExplanationService, GroqOpportunityExplanationService>();
     }
 }

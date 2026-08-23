@@ -13,8 +13,8 @@ public class ExplainOpportunityResponse
     [JsonPropertyName("strengths")]
     public List<string> Strengths { get; set; } = new();
 
-    [JsonPropertyName("risks")]
-    public List<string> Risks { get; set; } = new();
+    [JsonPropertyName("watchPoints")]
+    public List<string> WatchPoints { get; set; } = new();
 
     [JsonPropertyName("overall")]
     public string Overall { get; set; } = string.Empty;

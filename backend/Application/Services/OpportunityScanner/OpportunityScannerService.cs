@@ -209,4 +209,55 @@ public class OpportunityScannerService : IOpportunityScannerService
 
         return DataEligibility.Eligible;
     }
+
+    // =========================================================================
+    // SINGLE STOCK LOOKUP (for explanation endpoint)
+    // =========================================================================
+
+    public async Task<OpportunityResult?> GetOpportunityForStockAsync(
+        string stockSymbol,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Try Redis cache first
+        var cacheKey = $"{CacheKeyPrefix}{stockSymbol.ToLowerInvariant()}";
+        var cachedJson = await _cacheService.GetCachedDataAsync(cacheKey);
+
+        if (!string.IsNullOrEmpty(cachedJson))
+        {
+            _logger.LogInformation("GetOpportunityForStock: cache hit for {Symbol}", stockSymbol);
+            var cachedResult = JsonSerializer.Deserialize<OpportunityResult>(cachedJson);
+            if (cachedResult != null)
+                return cachedResult;
+        }
+
+        // 2. Cache miss — compute on-the-fly for this single stock
+        _logger.LogInformation("GetOpportunityForStock: cache miss for {Symbol}, computing on-the-fly", stockSymbol);
+
+        var stock = await _db.Stocks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.IsActive && s.Symbol.ToLower() == stockSymbol.ToLower(), cancellationToken);
+
+        if (stock == null)
+            return null;
+
+        var cutoff = DateTime.UtcNow.AddDays(-(CandleLookbackDays * 2));
+        var candles = await _db.StockCandles
+            .AsNoTracking()
+            .Where(c => c.StockId == stock.Id && c.Timestamp >= cutoff)
+            .OrderBy(c => c.Timestamp)
+            .ToListAsync(cancellationToken);
+
+        if (candles.Count < MetricCalculator.MinCandlesRequired)
+            return null;
+
+        var last = candles[^1];
+        if (last.Close <= 0)
+            return null;
+
+        var metrics = MetricCalculator.Compute(stock, candles);
+        var scored = OpportunityScorer.Score(metrics);
+        scored.Rank = 1;
+
+        return scored;
+    }
 }

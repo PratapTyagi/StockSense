@@ -12,4 +12,12 @@ public interface IOpportunityScannerService
     Task<IReadOnlyList<OpportunityResult>> GetOpportunitiesAsync(
         OpportunityScannerRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single stock's OpportunityResult from Redis cache,
+    /// or computes it on-the-fly if not cached.
+    /// </summary>
+    Task<OpportunityResult?> GetOpportunityForStockAsync(
+        string stockSymbol,
+        CancellationToken cancellationToken = default);
 }
