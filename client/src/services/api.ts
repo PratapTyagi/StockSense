@@ -1,14 +1,15 @@
 import type {
   CompareStockResponseItem,
+  ExplainOpportunityResponse,
   MarketOverviewResponse,
+  OpportunityResult,
   StockDetailsResponse,
   StockHistoryResponse,
   TopMoversResponse,
-  TrendingStocksResponse,
   TrendingStock,
+  TrendingStocksResponse,
   WatchlistItem,
 } from '../types/api'
-import { API_DEFAULT_URL } from '../constants'
 
 export class ApiError extends Error {
   status: number
@@ -20,8 +21,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = new URL(`/api${path}`, import.meta.env.VITE_API_URL || API_DEFAULT_URL);
-  const res = await fetch(url, {
+  const res = await fetch(`/api${path}`, {
     headers: {
       'Content-Type': 'application/json',
       ...(init?.headers || {}),
@@ -39,14 +39,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // ─── Opportunities ──────────────────────────────────────────────────────────
+  opportunities: (params?: { top?: number; minScore?: number; exchange?: string }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.top) searchParams.set('top', String(params.top))
+    if (params?.minScore) searchParams.set('minScore', String(params.minScore))
+    if (params?.exchange) searchParams.set('exchange', params.exchange)
+    const qs = searchParams.toString()
+    return request<OpportunityResult[]>(`/opportunities${qs ? `?${qs}` : ''}`)
+  },
+
+  opportunityExplanation: (symbol: string) =>
+    request<ExplainOpportunityResponse>(
+      `/opportunities/${encodeURIComponent(symbol)}/explanation`,
+    ),
+
+  // ─── Stock Details ──────────────────────────────────────────────────────────
   stockDetails: (symbol: string) =>
-    request<StockDetailsResponse>(`/stocks/${encodeURIComponent(symbol)}`),
+    request<StockDetailsResponse>(`/stock/${encodeURIComponent(symbol)}`),
 
   stockHistory: (symbol: string, range: string) =>
     request<StockHistoryResponse>(
       `/stocks/${encodeURIComponent(symbol)}/history?range=${encodeURIComponent(range)}`,
     ),
 
+  // ─── Trending / Market ──────────────────────────────────────────────────────
   trending: () => request<TrendingStocksResponse>(`/stock/trending`),
 
   compare: (symbols: string[]) =>
@@ -60,22 +77,22 @@ export const api = {
       body: JSON.stringify({ symbols }),
     }),
 
-  marketOverview: () => request<MarketOverviewResponse>(`/stock/compare?tickers=NIFTY,BSE,BANKNIFTY`),
+  marketOverview: () =>
+    request<MarketOverviewResponse>(`/stock/compare?tickers=NIFTY,BSE,BANKNIFTY`),
 
   topMovers: () => request<TopMoversResponse>(`/stocks/top-movers`),
 
+  // ─── Watchlist ──────────────────────────────────────────────────────────────
   watchlistGet: () => request<WatchlistItem[]>(`/watchlist`),
+
   watchlistAdd: (symbol: string) =>
     request<void>(`/watchlist`, {
       method: 'POST',
       body: JSON.stringify({ symbol }),
     }),
+
   watchlistRemove: (symbol: string) =>
     request<void>(`/watchlist/${encodeURIComponent(symbol)}`, {
       method: 'DELETE',
     }),
-
-  aiSummary: (symbol: string) =>
-    request<unknown>(`/stocks/${encodeURIComponent(symbol)}/ai-summary`),
 }
-

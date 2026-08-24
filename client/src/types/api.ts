@@ -1,3 +1,5 @@
+// ─── Stock Details ───────────────────────────────────────────────────────────
+
 export type NewsItem = {
   headline: string
   summary: string
@@ -15,6 +17,8 @@ export type StockDetailsResponse = {
   news: NewsItem[]
 }
 
+// ─── Stock History ──────────────────────────────────────────────────────────────
+
 export type PricePoint = {
   Date: string
   Close: number
@@ -25,6 +29,8 @@ export type StockHistoryResponse = {
   range: string
   data: PricePoint[]
 }
+
+// ─── Trending / Market ──────────────────────────────────────────────────────────
 
 export type TrendingStock = {
   symbol: string
@@ -68,5 +74,60 @@ export type CompareStockResponseItem = {
   Details: StockDetailsResponse
 }
 
+// ─── Watchlist ──────────────────────────────────────────────────────────────────
+
 export type WatchlistItem = { symbol: string } | string
 
+// ─── Opportunity Scanner ────────────────────────────────────────────────────────
+
+export type ScoreBreakdown = {
+  momentumScore: number
+  trendScore: number
+  volumeScore: number
+  riskScore: number
+}
+
+export type StockMetrics = {
+  stockId: number
+  symbol: string
+  companyName: string
+  exchange: string
+  latestClose: number
+  latestTimestamp: string
+  oneMonthReturnPct: number | null
+  threeMonthReturnPct: number | null
+  sixMonthReturnPct: number | null
+  sma20: number | null
+  sma50: number | null
+  sma200: number | null
+  distanceFromSma50Pct: number | null
+  distanceFromSma200Pct: number | null
+  sma50VsSma200Pct: number | null
+  currentVolume: number
+  averageVolume20: number | null
+  volumeRatio: number | null
+  averageDailyTradedValue: number | null
+  annualizedVolatilityPct: number | null
+}
+
+export type OpportunityResult = {
+  rank: number
+  stockId: number
+  symbol: string
+  companyName: string
+  exchange: string
+  latestClose: number
+  latestTimestamp: string
+  opportunityScore: number
+  overextensionPenalty: number
+  scores: ScoreBreakdown
+  signals: string[]
+  metrics: StockMetrics
+}
+
+export type ExplainOpportunityResponse = {
+  summary: string
+  strengths: string[]
+  watchPoints: string[]
+  overall: string
+}

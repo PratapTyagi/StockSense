@@ -1,79 +1,97 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../services/api'
 
-export const queryKeys = {
-  market: ['marketOverview'] as const,
-  trending: ['trending'] as const,
-  topMovers: ['topMovers'] as const,
-  stockDetails: (symbol: string) => ['stockDetails', symbol] as const,
-  stockHistory: (symbol: string, range: string) =>
-    ['stockHistory', symbol, range] as const,
-  compare: (symbols: string[]) => ['compare', symbols.join(',')] as const,
-  watchlist: ['watchlist'] as const,
-  batch: (symbols: string[]) => ['batch', symbols.join(',')] as const,
+// ─── Opportunities ────────────────────────────────────────────────────────────
+
+export function useOpportunities(params?: { top?: number; minScore?: number; exchange?: string }) {
+  return useQuery({
+    queryKey: ['opportunities', params],
+    queryFn: () => api.opportunities(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
 }
 
-export function useMarketOverview() {
-  return useQuery({ queryKey: queryKeys.market, queryFn: api.marketOverview })
+export function useOpportunityExplanation(symbol: string, enabled = true) {
+  return useQuery({
+    queryKey: ['opportunity-explanation', symbol],
+    queryFn: () => api.opportunityExplanation(symbol),
+    enabled: !!symbol && enabled,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  })
 }
 
-export function useTrendingStocks() {
-  return useQuery({ queryKey: queryKeys.trending, queryFn: api.trending })
-}
-
-export function useTopMovers() {
-  return useQuery({ queryKey: queryKeys.topMovers, queryFn: api.topMovers })
-}
+// ─── Stock Details ────────────────────────────────────────────────────────────
 
 export function useStockDetails(symbol: string) {
   return useQuery({
-    queryKey: queryKeys.stockDetails(symbol),
+    queryKey: ['stock-details', symbol],
     queryFn: () => api.stockDetails(symbol),
     enabled: !!symbol,
+    staleTime: 2 * 60 * 1000,
   })
 }
 
 export function useStockHistory(symbol: string, range: string) {
   return useQuery({
-    queryKey: queryKeys.stockHistory(symbol, range),
+    queryKey: ['stock-history', symbol, range],
     queryFn: () => api.stockHistory(symbol, range),
-    enabled: !!symbol && !!range,
+    enabled: !!symbol,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
-export function useCompare(symbols: string[]) {
+// ─── Market ───────────────────────────────────────────────────────────────────
+
+export function useMarketOverview() {
   return useQuery({
-    queryKey: queryKeys.compare(symbols),
-    queryFn: () => api.compare(symbols),
-    enabled: symbols.length > 0,
+    queryKey: ['market-overview'],
+    queryFn: () => api.marketOverview(),
+    staleTime: 2 * 60 * 1000,
   })
 }
+
+export function useTopMovers() {
+  return useQuery({
+    queryKey: ['top-movers'],
+    queryFn: () => api.topMovers(),
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+export function useTrending() {
+  return useQuery({
+    queryKey: ['trending'],
+    queryFn: () => api.trending(),
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+// ─── Watchlist ────────────────────────────────────────────────────────────────
 
 export function useWatchlist() {
-  return useQuery({ queryKey: queryKeys.watchlist, queryFn: api.watchlistGet })
-}
-
-export function useBatch(symbols: string[]) {
   return useQuery({
-    queryKey: queryKeys.batch(symbols),
-    queryFn: () => api.batch(symbols),
-    enabled: symbols.length > 0,
+    queryKey: ['watchlist'],
+    queryFn: () => api.watchlistGet(),
+    staleTime: 30 * 1000,
   })
 }
 
-export function useWatchlistMutations() {
-  const qc = useQueryClient()
-
-  const add = useMutation({
+export function useWatchlistAdd() {
+  const queryClient = useQueryClient()
+  return useMutation({
     mutationFn: (symbol: string) => api.watchlistAdd(symbol),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.watchlist }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] })
+    },
   })
-
-  const remove = useMutation({
-    mutationFn: (symbol: string) => api.watchlistRemove(symbol),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.watchlist }),
-  })
-
-  return { add, remove }
 }
 
+export function useWatchlistRemove() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (symbol: string) => api.watchlistRemove(symbol),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] })
+    },
+  })
+}

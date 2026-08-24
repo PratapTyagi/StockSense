@@ -1,26 +1,21 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom"
-import { Dashboard, Navbar, Search, Watchlist, Compare, Alerts, Settings, Help } from "../components"
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AppLayout } from '../components/layout/AppLayout'
+import { OpportunitiesPage } from '../pages/OpportunitiesPage'
+import { StockDetailsPage } from '../pages/StockDetailsPage'
+import { WatchlistPage } from '../pages/WatchlistPage'
+import { MarketPage } from '../pages/MarketPage'
 
-const renderMainPage = (component: React.ReactNode) => {
-    return (
-        <div className="flex">
-            <Navbar />
-            {component}
-        </div>
-    )
-}
-export const AppRoutes = () => {
-    return (
-        <BrowserRouter>
-            <Routes>
-                <Route path='/' element={renderMainPage(<Dashboard />)} />
-                <Route path='/search' element={renderMainPage(<Search />)} />
-                <Route path='/watchlist' element={renderMainPage(<Watchlist />)} />
-                <Route path='/compare' element={renderMainPage(<Compare />)} />
-                <Route path='/alerts' element={renderMainPage(<Alerts />)} />
-                <Route path='/settings' element={renderMainPage(<Settings />)} />
-                <Route path='/help' element={renderMainPage(<Help />)} />
-            </Routes>
-        </BrowserRouter>
-    )
+export function AppRoutes() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<OpportunitiesPage />} />
+          <Route path="/stock/:symbol" element={<StockDetailsPage />} />
+          <Route path="/market" element={<MarketPage />} />
+          <Route path="/watchlist" element={<WatchlistPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }
