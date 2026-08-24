@@ -1,4 +1,5 @@
 namespace Application.Interfaces;
+
 public interface ICacheService
 {
     /// <summary>
@@ -7,6 +8,15 @@ public interface ICacheService
     /// <param name="cacheKey"></param>
     /// <returns></returns>
     Task<string?> GetCachedDataAsync(string cacheKey);
+
+    /// <summary>
+    /// Fetches cached data and deserializes it to the specified type.
+    /// Returns null if the key doesn't exist or deserialization fails.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize to.</typeparam>
+    /// <param name="cacheKey"></param>
+    /// <returns></returns>
+    Task<T?> GetCachedDataAsync<T>(string cacheKey) where T : class;
 
     /// <summary>
     /// Fetches cached data for multiple cache keys. It returns an array of cached data corresponding to the provided cache keys. If a particular cache key does not have cached data, the corresponding entry in the returned array will be null.

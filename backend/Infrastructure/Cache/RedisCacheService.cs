@@ -3,8 +3,14 @@ using Application.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Infrastructure.Cache;
+
 public class RedisCacheService(IDistributedCache distributedCache) : ICacheService
 {
+    private static readonly JsonSerializerOptions DeserializeOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly IDistributedCache _distributedCache = distributedCache;
 
     /// <summary>
@@ -16,7 +22,27 @@ public class RedisCacheService(IDistributedCache distributedCache) : ICacheServi
     {
         return await _distributedCache.GetStringAsync(cacheKey);
     }
-    
+
+    /// <summary>
+    /// Fetches cached data and deserializes it to the specified type.
+    /// Returns null if the key doesn't exist or deserialization fails.
+    /// </summary>
+    public async Task<T?> GetCachedDataAsync<T>(string cacheKey) where T : class
+    {
+        var raw = await _distributedCache.GetStringAsync(cacheKey);
+        if (string.IsNullOrEmpty(raw))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(raw, DeserializeOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Fetches cached data for multiple cache keys. It returns an array of cached data corresponding to the provided cache keys. If a particular cache key does not have cached data, the corresponding entry in the returned array will be null.
     /// </summary>

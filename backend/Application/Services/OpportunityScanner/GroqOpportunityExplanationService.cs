@@ -4,6 +4,7 @@ using System.Text.Json;
 using Application.Interfaces;
 using Application.Models.OpportunityScanner;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services.OpportunityScanner;
@@ -17,12 +18,17 @@ public class GroqOpportunityExplanationService : IOpportunityExplanationService
     private readonly string _groqApiUrl;
     private readonly HttpClient _httpClient;
     private readonly ILogger<GroqOpportunityExplanationService> _logger;
+    private readonly ICacheService _cacheService;
     private readonly string _apiKey;
     private readonly string _model;
+    private readonly string _cacheKeyPrefix = "opportunity:";
+    private readonly string _cacheKeySuffix = ":explanation";
+    private static readonly TimeSpan CacheExpiration = TimeSpan.FromDays(1);
 
     public GroqOpportunityExplanationService(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
+        [FromKeyedServices("redis")] ICacheService cacheService,
         ILogger<GroqOpportunityExplanationService> logger)
     {
         _httpClient = httpClientFactory.CreateClient();
@@ -30,17 +36,30 @@ public class GroqOpportunityExplanationService : IOpportunityExplanationService
         _groqApiUrl = configuration["Groq:Url"] ?? throw new InvalidOperationException("Groq API Url not configured. Set 'Groq:Url' in appsettings.");
         _apiKey = configuration["Groq:ApiKey"] ?? throw new InvalidOperationException("Groq API key not configured. Set 'Groq:ApiKey' in appsettings.");
         _model = configuration["Groq:Model"] ?? "openai/gpt-oss-20b";
+        _cacheService = cacheService;
     }
 
     public async Task<ExplainOpportunityResponse> GenerateExplanationAsync(OpportunityResult opportunity)
     {
+        var cacheKey = getCacheKey(opportunity.Symbol);
+        var cached = await _cacheService.GetCachedDataAsync<ExplainOpportunityResponse>(cacheKey);
+        if (cached != null)
+        {
+            _logger.LogInformation("Returning cached explanation for {Symbol}", opportunity.Symbol);
+            return cached;
+        }
+
         var prompt = BuildPrompt(opportunity);
 
         _logger.LogInformation("GroqExplanation: requesting explanation for {Symbol}", opportunity.Symbol);
 
         var aiResponse = await CallGroqAsync(prompt);
+        var result = ParseResponse(aiResponse, opportunity.Symbol);
 
-        return ParseResponse(aiResponse, opportunity.Symbol);
+        // Cache the parsed object so retrieval deserializes cleanly
+        await _cacheService.SetCachedDataAsync(cacheKey, result, CacheExpiration);
+
+        return result;
     }
 
     private async Task<string> CallGroqAsync(string prompt)
@@ -226,4 +245,11 @@ public class GroqOpportunityExplanationService : IOpportunityExplanationService
             Overall = ""
         };
     }
+
+    /// <summary>
+    /// Get cache key name
+    /// </summary>
+    /// <param name="stockName"></param>
+    /// <returns></returns>
+    private string getCacheKey(string stockName) => $"{_cacheKeyPrefix}{stockName.ToLowerInvariant()}{_cacheKeySuffix}";
 }
