@@ -14,6 +14,7 @@ public class TrendingStocksResponse : ITrendingStocksResponse
 public class TrendingStock : ITrendingStock
 {
     public required string symbol { get; set; }
+    public string companyName { get; set; } = string.Empty;
     public required decimal price { get; set; }
     public required decimal change { get; set; }
     public required decimal changePercent { get; set; }

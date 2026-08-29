@@ -61,6 +61,7 @@ public static class FormatResponse
             topGainers = apiResponse.trending_stocks.top_gainers.Select(stock => new TrendingStock
             {
                 symbol = stock.ticker_id,
+                companyName = stock.company_name,
                 price = decimal.Parse(stock.price),
                 change = decimal.Parse(stock.net_change),
                 changePercent = decimal.Parse(stock.percent_change)
@@ -68,6 +69,7 @@ public static class FormatResponse
             topLosers = apiResponse.trending_stocks.top_losers.Select(stock => new TrendingStock
             {
                 symbol = stock.ticker_id,
+                companyName = stock.company_name,
                 price = decimal.Parse(stock.price),
                 change = decimal.Parse(stock.net_change),
                 changePercent = decimal.Parse(stock.percent_change)

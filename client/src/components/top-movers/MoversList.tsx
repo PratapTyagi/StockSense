@@ -10,6 +10,8 @@ export const MoversList = ({
   stocks: TrendingStock[];
   type: "gainer" | "loser";
 }) => {
+  console.log({ stocks });
+
   return (
     <div className="card p-5">
       <h4 className="text-sm font-semibold text-text-primary mb-3">{title}</h4>
@@ -17,11 +19,11 @@ export const MoversList = ({
         {stocks.slice(0, 8).map((stock) => (
           <Link
             key={stock.symbol}
-            to={`/stock/${encodeURIComponent(stock.symbol)}`}
+            to={`/stock/${encodeURIComponent(stock.companyName)}`}
             className="flex items-center justify-between p-2 rounded-lg hover:bg-surface-700 transition-colors"
           >
             <span className="text-sm font-medium text-text-primary">
-              {stock.symbol}
+              {stock.companyName}
             </span>
             <div className="text-right">
               <span className="text-xs text-text-secondary mr-3">
