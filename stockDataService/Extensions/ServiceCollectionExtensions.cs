@@ -2,6 +2,7 @@ using Helpers;
 using Interfaces;
 using Microsoft.AspNetCore.DataProtection;
 using StackExchange.Redis;
+using StockDataService.Authorization;
 using StockDataService.Repositories;
 using StockDataService.Services;
 
@@ -20,6 +21,34 @@ public static class ServiceCollectionExtensions
         // Encrypted, Redis-backed enctoken store. Registered as singleton so the process-local
         // memoization inside the provider is shared across requests.
         services.AddSingleton<IEncTokenProvider, RedisEncTokenProvider>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers API key-based authentication and authorization.
+    /// 
+    /// The API key is read exclusively from the STOCKDATA_API_KEY environment variable.
+    /// It is never stored in appsettings.json or any config file.
+    /// 
+    /// Set it via:
+    ///   export STOCKDATA_API_KEY=your-secret-key
+    ///   or in docker-compose.yml / .env file
+    /// </summary>
+    public static IServiceCollection AddApiKeyAuth(this IServiceCollection services)
+    {
+        services
+            .AddAuthentication(ApiKeyAuthHandler.SchemeName)
+            .AddScheme<ApiKeyAuthOptions, ApiKeyAuthHandler>(
+                ApiKeyAuthHandler.SchemeName,
+                options =>
+                {
+                    options.Key = Environment.GetEnvironmentVariable("STOCKDATA_API_KEY")
+                        ?? throw new InvalidOperationException(
+                            "Environment variable 'STOCKDATA_API_KEY' is required for API key authentication.");
+                });
+
+        services.AddAuthorization();
 
         return services;
     }

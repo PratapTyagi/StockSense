@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Application.Interfaces;
 using Application.Models.OpportunityScanner;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -27,16 +27,16 @@ public class GroqOpportunityExplanationService : IOpportunityExplanationService
 
     public GroqOpportunityExplanationService(
         IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
         [FromKeyedServices("redis")] ICacheService cacheService,
         ILogger<GroqOpportunityExplanationService> logger)
     {
         _httpClient = httpClientFactory.CreateClient();
         _logger = logger;
-        _groqApiUrl = configuration["Groq:Url"] ?? throw new InvalidOperationException("Groq API Url not configured. Set 'Groq:Url' in appsettings.");
-        _apiKey = configuration["Groq:ApiKey"] ?? throw new InvalidOperationException("Groq API key not configured. Set 'Groq:ApiKey' in appsettings.");
-        _model = configuration["Groq:Model"] ?? "openai/gpt-oss-20b";
+        _groqApiUrl = Environment.GetEnvironmentVariable("GROQ_URL") ?? throw new InvalidOperationException("Groq API Url is not configured. Set 'GROQ_URL' in environment variables.");
+        _apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? throw new InvalidOperationException("Groq API key is not configured. Set 'GROQ_API_KEY' in environment variables.");
+        _model = Environment.GetEnvironmentVariable("GROQ_MODEL") ?? "openai/gpt-oss-20b";
         _cacheService = cacheService;
+        _logger.LogInformation("Env: ${log}", JsonSerializer.Serialize(Environment.GetEnvironmentVariables()));
     }
 
     public async Task<ExplainOpportunityResponse> GenerateExplanationAsync(OpportunityResult opportunity)

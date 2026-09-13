@@ -18,6 +18,9 @@ builder.Services.AddSecureTokenStore(builder.Configuration);
 builder.Services.AddScopedServices();
 builder.Services.AddHttpClients();
 
+// Register API key authentication & authorization
+builder.Services.AddApiKeyAuth();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -27,6 +30,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Authentication & Authorization middleware (must be before MapControllers)
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

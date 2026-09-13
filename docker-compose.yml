@@ -1,0 +1,133 @@
+# ============================================================================
+# StockSenseAI - Docker Compose
+#
+# Services:
+#   1. client       → React SPA served by nginx (port 3000)
+#   2. backend      → .NET 10 Web API (port 5195)
+#   3. stockdata    → .NET 10 Stock Data Sync Service (port 5088)
+#   4. sqlserver    → Microsoft SQL Server 2022 (port 1433)
+#   5. redis        → Redis 7 cache (port 6379)
+#
+# Usage:
+#   cp .env.example .env        # Fill in your secrets
+#   docker compose up -d        # Start all services
+#   docker compose logs -f      # Tail logs
+#   docker compose down         # Stop all services
+# ============================================================================
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INFRASTRUCTURE SERVICES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: stocksense-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_PID: ${MSSQL_PID}
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - stocksense-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${SA_PASSWORD}" -C -Q "SELECT 1" -b -o /dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: stocksense-redis
+    volumes:
+      - redis-data:/data
+    networks:
+      - stocksense-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # APPLICATION SERVICES
+  # ═══════════════════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stocksense-backend
+    environment:
+      ASPNETCORE_URLS: http://+:5195
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Redis: ${BACKEND_REDIS_CONNECTION}
+      ConnectionStrings__StockDataDb: ${BACKEND_DB_CONNECTION}
+      Groq__Url: ${GROQ_URL}
+      Groq__ApiKey: ${GROQ_API_KEY}
+      Groq__Model: ${GROQ_MODEL}
+    expose:
+      - "5195"
+    networks:
+      - stocksense-network
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  stockdata:
+    build:
+      context: ./stockDataService
+      dockerfile: Dockerfile
+    container_name: stocksense-stockdata
+    environment:
+      ASPNETCORE_URLS: http://+:5088
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Redis: ${STOCKDATA_REDIS_CONNECTION}
+      ConnectionStrings__StockDataDb: ${STOCKDATA_DB_CONNECTION}
+      STOCKDATA_API_KEY: ${STOCKDATA_API_KEY}
+    # No public port exposure — only reachable within the Docker network
+    # Admin access: use `docker compose exec` or a VPN/tunnel
+    # Backend access: via internal DNS name "stockdata:5088"
+    expose:
+      - "5088"
+    networks:
+      - stocksense-network
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: stocksense-client
+    ports:
+      - "3000:80"
+    networks:
+      - stocksense-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VOLUMES & NETWORKS
+# ═══════════════════════════════════════════════════════════════════════════
+
+volumes:
+  sqlserver-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  stocksense-network:
+    driver: bridge

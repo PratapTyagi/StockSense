@@ -1,13 +1,16 @@
 using Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Controllers;
 
 /// <summary>
 /// Controller for stock-level operations such as syncing the master list of stocks.
+/// Requires a valid X-Api-Key header.
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class StockController(ILogger<StockController> logger, IStockSyncService stockSyncService) : ControllerBase
 {
     private readonly ILogger<StockController> _logger = logger;

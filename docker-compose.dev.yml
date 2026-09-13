@@ -1,0 +1,130 @@
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INFRASTRUCTURE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: stocksense-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_PID: ${MSSQL_PID}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${SA_PASSWORD}" -C -Q "SELECT 1" -b -o /dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: stocksense-redis
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BACKEND
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5195
+
+      ConnectionStrings__Redis: ${BACKEND_REDIS_CONNECTION}
+      ConnectionStrings__StockDataDb: ${BACKEND_DB_CONNECTION}
+
+      Groq__Url: ${GROQ_URL}
+      Groq__ApiKey: ${GROQ_API_KEY}
+      Groq__Model: ${GROQ_MODEL}
+
+    volumes:
+      - ./backend:/src
+
+    ports:
+      - "5195:5195"
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STOCK DATA SERVICE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  stockdata:
+    build:
+      context: ./stockDataService
+      dockerfile: Dockerfile.dev
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5088
+
+      ConnectionStrings__Redis: ${STOCKDATA_REDIS_CONNECTION}
+      ConnectionStrings__StockDataDb: ${STOCKDATA_DB_CONNECTION}
+
+      STOCKDATA_API_KEY: ${STOCKDATA_API_KEY}
+
+    volumes:
+      - ./stockDataService:/src
+
+    ports:
+      - "5088:5088"
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CLIENT
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+
+    volumes:
+      # Mount source code for Vite HMR
+      - ./client:/app
+
+      # Keep container's node_modules separate from host
+      - client_node_modules:/app/node_modules
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - backend
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VOLUMES
+# ═══════════════════════════════════════════════════════════════════════════
+
+volumes:
+  sqlserver-data:
+    driver: local
+  redis-data:
+    driver: local
+  client_node_modules:

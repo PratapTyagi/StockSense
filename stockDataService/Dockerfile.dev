@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /src
+
+# Copy project file first so dependency restore can be cached
+COPY stockDataService.csproj .
+
+# Restore dependencies
+RUN dotnet restore
+
+# Source code is mounted through docker-compose.dev.yml
+# so changes are immediately visible inside the container.
+
+EXPOSE 5088
+
+# Start application with hot reload
+CMD ["dotnet", "watch", "run", "--no-restore", "--urls", "http://0.0.0.0:5088"]

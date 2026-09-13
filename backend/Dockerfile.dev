@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /src
+
+# Copy project files first so dependency restore can be cached
+COPY Infrastructure/Backend.Infrastructure.csproj Infrastructure/
+COPY Application/Backend.Application.csproj Application/
+COPY Domain/Backend.Domain.csproj Domain/
+
+# Restore dependencies
+RUN dotnet restore Infrastructure/Backend.Infrastructure.csproj
+
+# Source code is mounted through docker-compose.dev.yml
+# so changes are immediately visible inside the container.
+
+WORKDIR /src/Infrastructure
+
+EXPOSE 5195
+
+# Start application with hot reload
+CMD ["dotnet", "watch", "run", "--no-restore", "--urls", "http://0.0.0.0:5195"]

@@ -1,19 +1,20 @@
 using Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace StockDataService.Controllers;
 
 /// <summary>
-/// Administrative endpoints for managing the daily Zerodha enctoken.
+/// Endpoints for managing the daily Zerodha enctoken.
 ///
 /// The token is stored in Redis with a TTL matching Zerodha's session cut-off
 /// and is encrypted at rest via ASP.NET Core Data Protection.
 ///
-/// SECURITY: These endpoints must NOT be exposed publicly. In production, protect
-/// with authentication (API key / OAuth / mTLS) and restrict to trusted networks.
+/// SECURITY: Requires a valid X-Api-Key header.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class EncTokenController : ControllerBase
 {
     private readonly IEncTokenProvider _tokenProvider;

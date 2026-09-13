@@ -20,10 +20,8 @@ export class ApiError extends Error {
   }
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5195";
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}/api${path}`, {
+  const res = await fetch(`/api${path}`, {
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers || {}),

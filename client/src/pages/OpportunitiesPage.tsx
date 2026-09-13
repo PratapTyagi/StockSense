@@ -56,9 +56,13 @@ export function OpportunitiesPage() {
       {/* Filters */}
       <Filter
         sortBy={sortBy}
-        setSortBy={setSortBy}
+        setSortBy={(value) => {
+          setSortBy(value);
+        }}
         minScore={minScore}
-        setMinScore={setMinScore}
+        setMinScore={(value) => {
+          setMinScore(value);
+        }}
       />
 
       {/* Content */}

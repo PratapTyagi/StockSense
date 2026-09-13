@@ -1,15 +1,17 @@
 using Helpers;
 using Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Controllers;
 
 /// <summary>
 /// Controller for fetching stock-related information such as fetching stock historical data.
+/// Requires a valid X-Api-Key header.
 /// </summary>
-/// <param name="logger"></param>
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class StockHistoryController(ILogger<StockHistoryController> logger, IStockHistorySyncService stockHistorySyncService, IStockSyncService stockSyncService) : ControllerBase
 {
     private ILogger<StockHistoryController> _logger = logger;

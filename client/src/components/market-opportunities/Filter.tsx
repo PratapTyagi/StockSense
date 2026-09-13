@@ -1,5 +1,12 @@
 import type { OpporunitySortField } from "../../types/OpporunitySortField";
 
+interface IFilter {
+  sortBy: OpporunitySortField;
+  setSortBy: (value: OpporunitySortField) => void;
+  minScore: number;
+  setMinScore: (value: number) => void;
+}
+
 const sortOptions: { value: OpporunitySortField; label: string }[] = [
   { value: "score", label: "Overall Score" },
   { value: "momentum", label: "Momentum" },
@@ -8,7 +15,12 @@ const sortOptions: { value: OpporunitySortField; label: string }[] = [
   { value: "risk", label: "Low Risk" },
 ];
 
-export const Filter = ({ sortBy, setSortBy, minScore, setMinScore }) => {
+export const Filter = ({
+  sortBy,
+  setSortBy,
+  minScore,
+  setMinScore,
+}: IFilter) => {
   return (
     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
       {/* Sort */}
