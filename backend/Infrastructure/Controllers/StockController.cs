@@ -63,28 +63,6 @@ public class StockController(ILogger<StockController> logger, IStockService stoc
     }
 
     /// <summary>
-    /// Fetches historical stock data for a given stock symbol and range.
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="range"></param>
-    /// <returns></returns>
-    [HttpGet("history")]
-    public async Task<IActionResult> GetHistory(
-        [FromQuery] string name,
-        [FromQuery] string range = "1M")
-    {
-        try
-        {
-            var result = await _stockService.GetStockHistoryAsync(name, range);
-            return Ok(result);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, "An error occurred while fetching stock history.");
-        }
-    }
-
-    /// <summary>
     /// Fetches trending stocks.
     /// </summary>
     /// <returns>A list of trending stocks.</returns>

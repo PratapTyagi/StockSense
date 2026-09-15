@@ -60,7 +60,7 @@ export const api = {
 
   // ─── Stock Details ──────────────────────────────────────────────────────────
   stockDetails: (symbol: string) =>
-    request<StockDetailsResponse>(`/stock/${encodeURIComponent(symbol)}`),
+    request<StockDetailsResponse>(`/stock?name=${encodeURIComponent(symbol)}`),
 
   stockHistory: (symbol: string, range: string) =>
     request<StockHistoryResponse>(

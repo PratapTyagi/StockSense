@@ -22,6 +22,8 @@ public static class ServiceCollectionExtensions
         // memoization inside the provider is shared across requests.
         services.AddSingleton<IEncTokenProvider, RedisEncTokenProvider>();
 
+        services.AddHostedService<StockSyncWorker>();
+
         return services;
     }
 

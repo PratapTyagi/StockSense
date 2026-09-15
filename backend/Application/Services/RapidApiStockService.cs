@@ -49,40 +49,6 @@ public class RapidApiStockService(IHttpClientFactory httpClientFactory, [FromKey
             throw;
         }
     }
-
-    /// <summary>
-    /// Fetches historical stock data for a given ticker symbol and range.
-    /// </summary>
-    /// <param name="ticker"></param>
-    /// <param name="range"></param>
-    /// <returns type="IStockHistoryResponse">Historical stock data for the specified ticker and range.</returns>
-    public async Task<IStockHistoryResponse> GetStockHistoryAsync(string ticker, string range)
-    {
-        try
-        {
-            string cachedStockHistoryCacheKey = $"{ServiceConstants.StockHistoryCacheKeyPrefix}{ticker}_{range}";
-            string? cachedStockHistory = await _cacheService.GetCachedDataAsync(cachedStockHistoryCacheKey);
-
-            if (!string.IsNullOrEmpty(cachedStockHistory))            {
-                return JsonSerializer.Deserialize<StockHistoryResponse>(cachedStockHistory);
-            }
-            HttpRequestMessage request = InitializeHttpRequestAsync();
-            request.RequestUri = new Uri($"{ServiceConstants.StockHistoryEndpoint}{ticker}&period={range}&filter=price", UriKind.Relative);
-
-            var response = await _httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-            var json = await response.Content.ReadAsStringAsync();
-            var stockHistoryResponse = FormatResponse.FormatStockHistoryResponse(json, ticker, range);
-            
-            await _cacheService.SetCachedDataAsync(cachedStockHistoryCacheKey, stockHistoryResponse);
-            return stockHistoryResponse;
-        }
-        catch (System.Exception e)
-        {
-            _logger.LogError($"Error occurred while fetching stock history data for ticker: {JsonSerializer.Serialize(e)}");
-            throw;
-        }   
-    }
     
     /// <summary>
     /// Fetches trending stocks.
