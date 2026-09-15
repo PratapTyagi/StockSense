@@ -62,7 +62,7 @@ public class StockSyncWorker : BackgroundService
             
             await _encTokenProvider.InvalidateAsync(cancellationToken);
             await Task.Delay(
-                TimeSpan.FromDays(2),
+                TimeSpan.FromDays(7),
                 cancellationToken);
         }
     }
