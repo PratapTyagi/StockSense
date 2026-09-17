@@ -44,6 +44,11 @@ internal static class WebApplicationBuilderExtensions
 
         builder.Services.AddControllers();
         builder.Services.AddHttpClient();
+        builder.Services.AddHttpClient("StockDataServiceClient", client =>
+        {
+            client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("STOCK_DATA_SERVICE_URL"));
+            client.DefaultRequestHeaders.Add("X-Api-Key", Environment.GetEnvironmentVariable("STOCK_DATA_SERVICE_API_KEY"));
+        });
         builder.Services.AddHttpClient("RapidApiClient", client =>
         {
             client.BaseAddress = new Uri(ServiceConstants.StockApiBaseUrl);

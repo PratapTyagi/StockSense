@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Application.Services;
 using Application.Services.OpportunityScanner;
+using Backend.Services;
 using Infrastructure.Cache;
 
 namespace Infrastructure;
@@ -15,5 +16,6 @@ public static class DependencyInjection
         services.AddScoped<IStockSenseService, StockSenseService>();
         services.AddScoped<IOpportunityScannerService, OpportunityScannerService>();
         services.AddScoped<IOpportunityExplanationService, GroqOpportunityExplanationService>();
+        services.AddScoped<IStockDataService, StockDataService>();
     }
 }

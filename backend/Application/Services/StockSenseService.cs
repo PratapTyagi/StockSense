@@ -71,16 +71,4 @@ public class StockSenseService([FromKeyedServices("redis")] ICacheService cacheS
             throw;
         }
     }
-
-    /// <summary>
-    /// Get AI Response
-    /// </summary>
-    /// <param name="prompt"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public Task<string> GetAIResponseAsync(string prompt)
-    {
-        _logger.LogInformation(prompt);
-        return Task.FromResult(string.Empty);
-    }
 }
