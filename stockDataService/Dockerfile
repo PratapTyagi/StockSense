@@ -32,7 +32,7 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:5088/openapi/v1.json || exit 1
+    CMD curl -f http://localhost:5088/api/health || exit 1
 
 # Entry point
 ENTRYPOINT ["dotnet", "stockDataService.dll"]
