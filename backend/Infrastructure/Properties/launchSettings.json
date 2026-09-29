@@ -7,7 +7,9 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5195",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "GROQ_URL": "https://api.groq.com/openai/v1/chat/completions",
+        "GROQ_MODEL": "openai/gpt-oss-20b"
       }
     },
     "https": {
